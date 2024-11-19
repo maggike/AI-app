@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
+
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -16,10 +17,32 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 const CompareResults = ({ results }) => {
   // Handle missing or empty results gracefully
+
+  const saveResults = async (results) => {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/api/save_results', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(results),
+      });
+      const data = await response.json();
+      console.log('Saved Result ID:', data.id);
+    } catch (error) {
+      console.error('Error saving results:', error);
+    }
+  };
+
+  // Automatically save results when `results` prop changes
+  useEffect(() => {
+    if (results) {
+      saveResults(results);
+    }
+  }, [results]);
   if (!results) {
     return <p>No results to display. Please upload files and try again.</p>;
   }
-
   // Prepare data for the bar chart
   const chartData = {
     labels: ['Semantic Similarity', 'Added Sections', 'Removed Sections'],

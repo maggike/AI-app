@@ -16,7 +16,7 @@ const FileUpload = ({ onResult }) => {
     }
     setError('');
     setLoading(true);
-
+    onResult(null);
     // Create FormData object for file uploads
     const formData = new FormData();
     formData.append('file1', file1);

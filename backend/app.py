@@ -13,9 +13,11 @@ import numpy as np
 from transformers import pipeline
 from transformers import GPT2TokenizerFast
 from concurrent.futures import ThreadPoolExecutor
-
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from openai import OpenAI
 from openai.types import CreateEmbeddingResponse, Embedding, EmbeddingModel
+from sqlalchemy import text
 
 
 import difflib
@@ -29,6 +31,10 @@ logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 CORS(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///local.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 UPLOAD_FOLDER = 'uploaded_docs'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -47,7 +53,53 @@ client = OpenAI(
     organization='org-xn78pOCSNt4pW6XXtD528lib'
       # This is the default and can be omitted
 )
+# class ComparisonResult(db.Model):
+#     id = db.Column(db.Integer, primary_key=True)
+#     semantic_similarity = db.Column(db.Float, nullable=False)
+#     added_sections = db.Column(db.Text, nullable=False)
+#     removed_sections = db.Column(db.Text, nullable=False)
 
+#     def __init__(self, semantic_similarity, added_sections, removed_sections):
+#         self.semantic_similarity = semantic_similarity
+#         self.added_sections = added_sections
+#         self.removed_sections = removed_sections
+class ComparisonResult(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    semantic_similarity = db.Column(db.Float, nullable=False)
+    added_sections = db.Column(db.Text, nullable=False)
+    removed_sections = db.Column(db.Text, nullable=False)
+    risks = db.Column(db.Text, nullable=True)  # Add the risks field
+
+    def __init__(self, semantic_similarity, added_sections, removed_sections, risks=None):
+        self.semantic_similarity = semantic_similarity
+        self.added_sections = added_sections
+        self.removed_sections = removed_sections
+        self.risks = risks
+
+# Initialize the database
+with app.app_context():
+    db.create_all()
+
+# Save results to database
+@app.route('/api/save_results', methods=['POST'])
+def save_results():
+    data = request.json
+    result = ComparisonResult(
+        semantic_similarity=data['semantic_similarity'],
+        added_sections='\n'.join(data['added_sections']),
+        removed_sections='\n'.join(data['removed_sections']),
+        risks='\n'.join(data['risks']) if 'risks' in data else None
+    )
+    db.session.add(result)
+    db.session.commit()
+    return jsonify({'message': 'Results saved successfully', 'id': result.id})
+@app.route('/api/test_db', methods=['GET'])
+def test_db():
+    try:
+        result = db.session.execute(text("SELECT 1")).scalar()
+        return jsonify({'message': 'Database connected successfully', 'result': result})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 def safe_request_with_limit(api_call, *args, **kwargs):
     """
     Handles API calls with centralized rate-limiting and retries.
