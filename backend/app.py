@@ -296,7 +296,7 @@ def calculate_similarity(text1, text2):
 
 
 def assess_risk_parallel(differences):
-    max_tokens = 512
+    max_tokens = 256
     chunks = [split_text_into_chunks(diff, max_tokens) for diff in differences]
     chunks_flat = [chunk for sublist in chunks for chunk in sublist]
 
