@@ -214,7 +214,7 @@ def analyze_and_refine_risks(differences):
 def calculate_similarity(text1, text2):
     try:
         # Split large texts into manageable chunks
-        max_tokens = 1024  # Safe limit below the model's 8192 token max
+        max_tokens = 512 # Safe limit below the model's 8192 token max
         logging.info("Splitting text1 into chunks...")
         text1_chunks = split_text_into_chunks(text1, max_tokens)
         logging.info(f"Text1 split into {len(text1_chunks)} chunks.")
