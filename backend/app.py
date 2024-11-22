@@ -53,16 +53,7 @@ client = OpenAI(
     organization='org-xn78pOCSNt4pW6XXtD528lib'
       # This is the default and can be omitted
 )
-# class ComparisonResult(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     semantic_similarity = db.Column(db.Float, nullable=False)
-#     added_sections = db.Column(db.Text, nullable=False)
-#     removed_sections = db.Column(db.Text, nullable=False)
 
-#     def __init__(self, semantic_similarity, added_sections, removed_sections):
-#         self.semantic_similarity = semantic_similarity
-#         self.added_sections = added_sections
-#         self.removed_sections = removed_sections
 class ComparisonResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     semantic_similarity = db.Column(db.Float, nullable=False)
@@ -130,30 +121,7 @@ def safe_request_with_limit(api_call, *args, **kwargs):
             logging.error(f"An unexpected error occurred: {e}")
             break
     raise Exception("Max retries reached. Could not complete the request.")
-    # """
-    # Handles API calls with centralized rate-limiting and retries.
-    # """
-    # global last_request_time
-    # max_retries = 5
-    # backoff_factor = 1.5
-
-    # for attempt in range(max_retries):
-    #     elapsed = time.time() - last_request_time
-    #     if elapsed < request_interval:
-    #         time.sleep(request_interval - elapsed)
-
-    #     try:
-    #         response = api_call(*args, **kwargs)
-    #         last_request_time = time.time()
-    #         return response
-    #     except openai.OpenAIError as e:
-    #         logging.warning(f"API error: {e}. Retrying in {backoff_factor ** attempt} seconds...")
-    #         time.sleep(backoff_factor ** attempt)
-    #     except Exception as e:
-    #         logging.error(f"An unexpected error occurred: {e}")
-    #         break
-
-    # raise Exception("Max retries reached. Could not complete the request.")
+   
 def compare_structures(text1, text2):
     sections1 = extract_sections(text1)
     sections2 = extract_sections(text2)
@@ -197,25 +165,7 @@ def get_embeddings_batch(text_chunks):
     except Exception as e:
         logging.error(f"Error generating embeddings: {e}")
         return []
-    # try:
-    #     batch_size = 5
-    #     all_embeddings = []
-    #     for i in range(0, len(text_chunks), batch_size):
-    #         batch = text_chunks[i:i + batch_size]
-    #         with rate_limit_lock:
-    #             time.sleep(request_interval)  # Enforce rate limiting
-    #         response = safe_request_with_limit(
-    #             openai.Embedding.create,
-    #             model="text-embedding-ada-002",
-    #             input=batch
-    #         )
-    #         all_embeddings.extend([data.embedding for data in response['data']])
-    #     return all_embeddings
-    # except openai.error.APIError as e:
-    #     logging.error(f"API error while generating embeddings: {e}")
-    # except Exception as e:
-    #     logging.error(f"Unexpected error generating embeddings: {e}")
-    # return []
+   
 def shorten_risks(risks, max_length=200):
     """
     Shorten risk descriptions to a maximum character length.
