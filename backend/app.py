@@ -104,10 +104,38 @@ def safe_request_with_limit(api_call, *args, **kwargs):
     """
     Handles API calls with centralized rate-limiting and retries.
     """
+    # global last_request_time
+    # max_retries = 5
+    # backoff_factor = 2
+    # retry_delay = 1  # Start with a 1-second delay
+
+    # for attempt in range(max_retries):
+    #     elapsed = time.time() - last_request_time
+    #     if elapsed < request_interval:
+    #         time.sleep(request_interval - elapsed)
+
+    #     try:
+    #         response = api_call(*args, **kwargs)
+    #         last_request_time = time.time()
+    #         return response
+    #     except openai.RateLimitError as e:
+    #         logging.warning(f"Rate limit error: {e}. Retrying in {retry_delay} seconds...")
+    #         time.sleep(retry_delay)
+    #         retry_delay *= backoff_factor
+    #     except (openai.APIError) as e:
+    #         logging.warning(f"API error: {e}. Retrying in {retry_delay} seconds...")
+    #         time.sleep(retry_delay)
+    #         retry_delay *= backoff_factor
+    #     except Exception as e:
+    #         logging.error(f"An unexpected error occurred: {e}")
+    #         break
+    # raise Exception("Max retries reached. Could not complete the request.")
+    """
+    Handles API calls with centralized rate-limiting and retries.
+    """
     global last_request_time
     max_retries = 5
-    backoff_factor = 2
-    retry_delay = 1  # Start with a 1-second delay
+    backoff_factor = 1.5
 
     for attempt in range(max_retries):
         elapsed = time.time() - last_request_time
@@ -118,17 +146,13 @@ def safe_request_with_limit(api_call, *args, **kwargs):
             response = api_call(*args, **kwargs)
             last_request_time = time.time()
             return response
-        except openai.RateLimitError as e:
-            logging.warning(f"Rate limit error: {e}. Retrying in {retry_delay} seconds...")
-            time.sleep(retry_delay)
-            retry_delay *= backoff_factor
-        except (openai.APIError) as e:
-            logging.warning(f"API error: {e}. Retrying in {retry_delay} seconds...")
-            time.sleep(retry_delay)
-            retry_delay *= backoff_factor
+        except openai.OpenAIError as e:
+            logging.warning(f"API error: {e}. Retrying in {backoff_factor ** attempt} seconds...")
+            time.sleep(backoff_factor ** attempt)
         except Exception as e:
             logging.error(f"An unexpected error occurred: {e}")
             break
+
     raise Exception("Max retries reached. Could not complete the request.")
 def compare_structures(text1, text2):
     sections1 = extract_sections(text1)
@@ -156,6 +180,23 @@ def split_text_into_chunks(text, max_tokens=256, overlap=64):
 
 
 def get_embeddings_batch(text_chunks):
+    # try:
+    #     batch_size = 5
+    #     all_embeddings = []
+    #     for i in range(0, len(text_chunks), batch_size):
+    #         batch = text_chunks[i:i + batch_size]
+    #         with rate_limit_lock:
+    #             time.sleep(request_interval)  # Enforce rate limiting
+    #         response = safe_request_with_limit(
+    #             client.embeddings.create,
+    #             input=batch,
+    #             model="text-embedding-ada-002"
+    #         )
+    #         all_embeddings.extend([data.embedding for data in response.data])
+    #     return all_embeddings
+    # except Exception as e:
+    #     logging.error(f"Error generating embeddings: {e}")
+    #     return []
     try:
         batch_size = 5
         all_embeddings = []
@@ -164,15 +205,17 @@ def get_embeddings_batch(text_chunks):
             with rate_limit_lock:
                 time.sleep(request_interval)  # Enforce rate limiting
             response = safe_request_with_limit(
-                client.embeddings.create,
+                openai.Embedding.create,
                 input=batch,
                 model="text-embedding-ada-002"
             )
-            all_embeddings.extend([data.embedding for data in response.data])
+            all_embeddings.extend([data.embedding for data in response['data']])
         return all_embeddings
+    except openai.error.APIError as e:
+        logging.error(f"API error while generating embeddings: {e}")
     except Exception as e:
-        logging.error(f"Error generating embeddings: {e}")
-        return []
+        logging.error(f"Unexpected error generating embeddings: {e}")
+    return []
 def shorten_risks(risks, max_length=200):
     """
     Shorten risk descriptions to a maximum character length.
