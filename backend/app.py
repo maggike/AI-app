@@ -146,7 +146,7 @@ def compare_structures(text1, text2):
     return summary
 
 
-def split_text_into_chunks(text, max_tokens=512, overlap=128):
+def split_text_into_chunks(text, max_tokens=256, overlap=64):
     tokens = tokenizer.encode(text)
     chunks = []
     for i in range(0, len(tokens), max_tokens - overlap):
