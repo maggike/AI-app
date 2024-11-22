@@ -206,8 +206,8 @@ def get_embeddings_batch(text_chunks):
                 time.sleep(request_interval)  # Enforce rate limiting
             response = safe_request_with_limit(
                 openai.Embedding.create,
-                input=batch,
-                model="text-embedding-ada-002"
+                model="text-embedding-ada-002",
+                input=batch
             )
             all_embeddings.extend([data.embedding for data in response['data']])
         return all_embeddings
